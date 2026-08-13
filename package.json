@@ -1,0 +1,15 @@
+{
+  "name": "traco-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd apps/web && npm run dev",
+    "dev:api": "cd apps/api && uvicorn main:app --reload",
+    "build": "cd apps/web && npm run build",
+    "lint": "cd apps/web && npm run lint",
+    "install:all": "npm install && cd apps/web && npm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
