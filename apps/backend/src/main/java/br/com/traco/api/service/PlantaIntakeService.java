@@ -8,6 +8,8 @@ import br.com.traco.api.repo.PlantaRepository;
 import br.com.traco.api.repo.ProjectRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -17,7 +19,7 @@ import java.util.Set;
 
 /**
  * Recebe o arquivo da planta, valida extensão + magic bytes (anti-disfarce),
- * persiste no storage e dispara o pipeline de IA.
+ * persiste no storage e dispara o pipeline de IA após o commit.
  */
 @Service
 public class PlantaIntakeService {
@@ -77,7 +79,17 @@ public class PlantaIntakeService {
         planta.setProject(project);
         planta.setStatus("processando");
         planta = plantaRepository.save(planta);
-        analysisEngine.process(planta.getId());
+
+        // O pipeline async só é disparado DEPOIS do commit desta transação —
+        // caso contrário a thread do worker não enxergaria a planta (linha ainda
+        // não commitada) e a análise morreria em silêncio.
+        final Long plantaId = planta.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                analysisEngine.process(plantaId);
+            }
+        });
         return planta;
     }
 

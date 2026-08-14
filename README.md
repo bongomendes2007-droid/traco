@@ -78,10 +78,11 @@ Login demo: `demo@traco.com.br` / `demo123`
 - [x] Telas completas do frontend (upload, dashboard, projetos, plantas, análises, orçamentos, configurações)
 - [x] Backend Java com autenticação JWT e persistência H2/Postgres
 - [x] Integração frontend ↔ backend com fallback demo
-- [ ] Worker de visão computacional real (OpenCV/PyTorch) no lugar do AnalysisEngine simulado
+- [x] Worker de visão computacional real (OpenCV/PyTorch) — `packages/ai/worker.py`, integrado ao Java com fallback simulado
 - [ ] Exportação de relatórios PDF/Excel
 - [x] Deploy do backend preparado: Dockerfile non-root + `render.yaml` (Blueprint Render com Postgres gerenciado)
-- [ ] Aplicar o Blueprint no Render e apontar `NEXT_PUBLIC_API_URL` no Vercel
+- [x] Aplicar o Blueprint no Render e apontar `NEXT_PUBLIC_API_URL` no Vercel
+- [ ] Reaplicar o Blueprint no Render para criar o serviço `traco-ai` (worker CV em produção)
 
 ## Licença
 

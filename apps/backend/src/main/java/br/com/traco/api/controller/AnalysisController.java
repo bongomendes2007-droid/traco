@@ -33,15 +33,18 @@ public class AnalysisController {
     public List<AnalysisDto> list() {
         User user = currentUser.require();
         return analysisRepository.findByProjectUserOrderByIdDesc(user).stream()
-                .map(a -> AnalysisDto.from(a, parse(a.getElementsJson()), parse(a.getQuantitiesJson())))
+                .map(a -> AnalysisDto.from(a,
+                        parse(a.getElementsJson()),
+                        parse(a.getQuantitiesJson()),
+                        parseBoxes(a.getBoxesJson())))
                 .toList();
     }
 
     /** Endpoint legado compatível com a antiga API FastAPI. */
     @GetMapping("/analysis/{id}")
     public Map<String, Object> legacy(@PathVariable Long id) {
-        Analysis a = analysisRepository.findById(id)
-                .or(analysisRepository::findFirstByOrderByIdDesc)
+        Analysis a = analysisRepository.findFetchById(id)
+                .or(() -> analysisRepository.findAllFetch().stream().findFirst())
                 .orElse(null);
         if (a == null || a.getArea() == null) {
             return Map.of(
@@ -70,6 +73,15 @@ public class AnalysisController {
         if (json == null || json.isBlank()) return List.of();
         try {
             return objectMapper.readValue(json, new TypeReference<List<Map<String, String>>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private List<Map<String, Object>> parseBoxes(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception e) {
             return List.of();
         }

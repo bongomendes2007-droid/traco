@@ -86,6 +86,7 @@ export interface AnalysisDto {
   estimatedCost: number | null;
   elements: { label: string; value: string }[];
   quantities: { label: string; value: string }[];
+  boxes: { x: number; y: number; w: number; h: number; area_m2: number }[];
 }
 
 function authHeaders(): HeadersInit {

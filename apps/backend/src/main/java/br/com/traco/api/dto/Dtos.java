@@ -64,10 +64,12 @@ public final class Dtos {
     public record AnalysisDto(Long id, String code, String project, String plan, Instant date,
                               Integer durationSeconds, Integer confidence, String status,
                               Double area, Integer rooms, Double estimatedCost,
-                              List<Map<String, String>> elements, List<Map<String, String>> quantities) {
+                              List<Map<String, String>> elements, List<Map<String, String>> quantities,
+                              List<Map<String, Object>> boxes) {
         public static AnalysisDto from(br.com.traco.api.model.Analysis a,
                                        List<Map<String, String>> elements,
-                                       List<Map<String, String>> quantities) {
+                                       List<Map<String, String>> quantities,
+                                       List<Map<String, Object>> boxes) {
             return new AnalysisDto(
                     a.getId(),
                     a.getCode(),
@@ -81,7 +83,8 @@ public final class Dtos {
                     a.getRooms(),
                     a.getEstimatedCost(),
                     elements,
-                    quantities);
+                    quantities,
+                    boxes);
         }
     }
 }

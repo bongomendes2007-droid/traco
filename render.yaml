@@ -1,4 +1,4 @@
-# Render Blueprint — deploy do backend TRAÇO (Java 21 + Spring Boot 3 + Postgres)
+# Render Blueprint — deploy do TRAÇO (Java 21 + Spring Boot 3 + Postgres + Worker CV Python)
 # Uso: render.com → New → Blueprint → selecionar o repo → aplicar.
 databases:
   - name: traco-db
@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: https://traco-uuiu-flame.vercel.app
+      - key: AI_SERVICE_URL
+        value: https://traco-ai.onrender.com
       - key: DB_HOST
         fromDatabase:
           name: traco-db
@@ -40,3 +42,13 @@ services:
         fromDatabase:
           name: traco-db
           property: password
+
+  # Worker de visão computacional (OpenCV + PyMuPDF) — leitura real de plantas
+  - type: web
+    name: traco-ai
+    runtime: python
+    rootDir: packages/ai
+    plan: free
+    healthCheckPath: /
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn worker:app --host 0.0.0.0 --port $PORT
