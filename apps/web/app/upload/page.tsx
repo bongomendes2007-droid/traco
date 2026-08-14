@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Upload, FileText, X, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Zap, BarChart3 } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, FileText, X, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Zap, BarChart3, Wifi, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { uploadPlan, checkApiHealth } from "@/lib/api";
 
 export default function UploadPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    checkApiHealth().then(setApiOnline);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -42,8 +49,10 @@ export default function UploadPage() {
     if (droppedFile && validateFile(droppedFile)) {
       setFile(droppedFile);
       setUploadStatus("idle");
+      setErrorMessage("");
     } else {
       setUploadStatus("error");
+      setErrorMessage("Formato de arquivo não suportado. Use PDF, DWG, PNG ou JPG.");
     }
   }, []);
 
@@ -52,8 +61,10 @@ export default function UploadPage() {
     if (selectedFile && validateFile(selectedFile)) {
       setFile(selectedFile);
       setUploadStatus("idle");
+      setErrorMessage("");
     } else {
       setUploadStatus("error");
+      setErrorMessage("Formato de arquivo não suportado. Use PDF, DWG, PNG ou JPG.");
     }
   };
 
@@ -62,28 +73,43 @@ export default function UploadPage() {
 
     setUploadStatus("uploading");
     setProgress(0);
+    setErrorMessage("");
 
-    // Simulação de progresso real
-    const interval = setInterval(() => {
+    // Simulação de progresso visual enquanto a API processa
+    const progressInterval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
         }
-        return prev + Math.random() * 15;
+        return prev + Math.random() * 12;
       });
-    }, 200);
+    }, 250);
 
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    clearInterval(interval);
-    setProgress(100);
-    setUploadStatus("success");
+    try {
+      if (apiOnline) {
+        // Tentativa real de upload para a API FastAPI
+        await uploadPlan(file);
+      } else {
+        // Fallback: simulação quando a API não está rodando
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      }
+
+      clearInterval(progressInterval);
+      setProgress(100);
+      setUploadStatus("success");
+    } catch (err) {
+      clearInterval(progressInterval);
+      setUploadStatus("error");
+      setErrorMessage(err instanceof Error ? err.message : "Erro ao processar arquivo. Tente novamente.");
+    }
   };
 
   const removeFile = () => {
     setFile(null);
     setUploadStatus("idle");
     setProgress(0);
+    setErrorMessage("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -103,11 +129,26 @@ export default function UploadPage() {
           <Logo size="md" />
         </Link>
         <nav className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2 text-xs font-mono">
+            {apiOnline === null ? (
+              <span className="text-grafite-3">Verificando API...</span>
+            ) : apiOnline ? (
+              <>
+                <Wifi size={14} className="text-green-400" />
+                <span className="text-green-400">API Online</span>
+              </>
+            ) : (
+              <>
+                <WifiOff size={14} className="text-traco-laranja" />
+                <span className="text-traco-laranja">Modo Demo</span>
+              </>
+            )}
+          </div>
           <Link href="/dashboard" className="text-grafite-3 hover:text-traco-laranja transition-colors font-medium">
             Dashboard
           </Link>
-          <Link href="/docs" className="text-grafite-3 hover:text-traco-laranja transition-colors font-medium">
-            Documentação
+          <Link href="/projetos" className="text-grafite-3 hover:text-traco-laranja transition-colors font-medium">
+            Projetos
           </Link>
           <Button variant="outline" size="sm" asChild>
             <Link href="/login">Entrar</Link>
@@ -222,7 +263,7 @@ export default function UploadPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-traco-laranja font-medium flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-traco-laranja border-t-transparent rounded-full animate-spin" />
-                        Processando planta...
+                        {apiOnline ? "Enviando para API..." : "Processando (modo demo)..."}
                       </span>
                       <span className="font-mono text-grafite-3">{Math.round(progress)}%</span>
                     </div>
@@ -255,9 +296,7 @@ export default function UploadPage() {
                 {uploadStatus === "error" && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Formato de arquivo não suportado. Use PDF, DWG, PNG ou JPG.
-                    </AlertDescription>
+                    <AlertDescription>{errorMessage}</AlertDescription>
                   </Alert>
                 )}
               </div>
