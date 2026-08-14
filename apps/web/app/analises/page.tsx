@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getToken, checkApiHealth, listAnalises, type AnalysisDto } from "@/lib/api";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ interface Analysis {
   quantities: { label: string; value: string }[];
 }
 
-const analyses: Analysis[] = [
+const initialAnalyses: Analysis[] = [
   {
     id: "a1",
     code: "ANL-0047",
@@ -217,8 +218,54 @@ const statusMeta: Record<
   erro: { label: "Falha na leitura", badge: "destructive" },
 };
 
+function mapAnalysisFromApi(a: AnalysisDto): Analysis {
+  const statusMap: Record<string, AnalysisStatus> = {
+    concluida: "concluida",
+    revisada: "revisada",
+    processando: "processando",
+    erro: "erro",
+  };
+  const fmtBRL = (v: number) =>
+    "R$ " +
+    v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const d = new Date(a.date);
+  return {
+    id: String(a.id),
+    code: a.code,
+    project: a.project || "Projeto",
+    plan: a.plan || "—",
+    date:
+      d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) +
+      ", " +
+      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    duration: a.durationSeconds != null ? a.durationSeconds + "s" : "—",
+    confidence: a.confidence ?? 0,
+    status: statusMap[a.status] || "concluida",
+    area: a.area != null ? String(a.area).replace(".", ",") + " m²" : "—",
+    rooms: a.rooms ?? 0,
+    estimatedCost: a.estimatedCost != null ? fmtBRL(a.estimatedCost) : "—",
+    elements: a.elements || [],
+    quantities: a.quantities || [],
+  };
+}
+
 export default function AnalisesPage() {
+  const [analyses, setAnalyses] = useState<Analysis[]>(initialAnalyses);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!getToken()) return;
+        const online = await checkApiHealth();
+        if (!online) return;
+        const data = await listAnalises();
+        if (data.length > 0) setAnalyses(data.map(mapAnalysisFromApi));
+      } catch {
+        /* mantém dados locais */
+      }
+    })();
+  }, []);
   const [statusFilter, setStatusFilter] = useState<"todas" | AnalysisStatus>("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set(["a1"]));
 

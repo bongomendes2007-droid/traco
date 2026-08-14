@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   Home,
   Factory,
 } from "lucide-react";
+import { getToken, checkApiHealth, listProjetos, createProjeto, deleteProjeto, type ProjectDto } from "@/lib/api";
 
 interface Project {
   id: string;
@@ -76,8 +77,28 @@ const initialProjects: Project[] = [
   },
 ];
 
+function mapFromApi(p: ProjectDto): Project {
+  const types = ["residencial", "comercial", "industrial"];
+  const statuses = ["ativo", "concluido", "rascunho"];
+  return {
+    id: String(p.id),
+    name: p.name,
+    type: (types.includes(p.type) ? p.type : "residencial") as Project["type"],
+    status: (statuses.includes(p.status) ? p.status : "rascunho") as Project["status"],
+    plans: p.plans,
+    lastAnalysis: "—",
+    estimatedCost: "—",
+    createdAt: new Date(p.createdAt).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+  };
+}
+
 export default function ProjetosPage() {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [usingApi, setUsingApi] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProject, setNewProject] = useState({
@@ -85,12 +106,39 @@ export default function ProjetosPage() {
     type: "residencial" as const,
   });
 
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!getToken()) return;
+        const online = await checkApiHealth();
+        if (!online) return;
+        const data = await listProjetos();
+        setProjects(data.map(mapFromApi));
+        setUsingApi(true);
+      } catch {
+        /* mantém dados locais */
+      }
+    })();
+  }, []);
+
   const filteredProjects = projects.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProject.name.trim()) return;
+
+    if (usingApi) {
+      try {
+        const created = await createProjeto(newProject.name, newProject.type);
+        setProjects([mapFromApi(created), ...projects]);
+        setNewProject({ name: "", type: "residencial" });
+        setShowCreateModal(false);
+        return;
+      } catch {
+        /* fallback local */
+      }
+    }
 
     const project: Project = {
       id: String(Date.now()),
@@ -112,7 +160,14 @@ export default function ProjetosPage() {
     setShowCreateModal(false);
   };
 
-  const handleDeleteProject = (id: string) => {
+  const handleDeleteProject = async (id: string) => {
+    if (usingApi) {
+      try {
+        await deleteProjeto(Number(id));
+      } catch {
+        /* fallback local */
+      }
+    }
     setProjects(projects.filter((p) => p.id !== id));
   };
 

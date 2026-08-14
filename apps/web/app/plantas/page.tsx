@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getToken, checkApiHealth, listPlantas, deletePlanta, type PlantaDto } from "@/lib/api";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -198,8 +199,48 @@ function PlanThumb({ variant }: { variant: 0 | 1 | 2 }) {
   );
 }
 
+function mapPlantaFromApi(p: PlantaDto): Plan {
+  const formats = ["PDF", "DWG", "PNG", "JPG"];
+  const statuses = ["concluida", "processando", "erro"];
+  const sizeLabel =
+    p.sizeBytes < 1024 * 1024
+      ? Math.max(1, Math.round(p.sizeBytes / 1024)) + " KB"
+      : (p.sizeBytes / (1024 * 1024)).toFixed(1).replace(".", ",") + " MB";
+  return {
+    id: String(p.id),
+    name: p.name,
+    project: p.project || "Projeto Geral",
+    format: (formats.includes(p.format) ? p.format : "PDF") as Plan["format"],
+    size: sizeLabel,
+    sizeMB: p.sizeBytes / (1024 * 1024),
+    uploadedAt: new Date(p.uploadedAt).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    status: (statuses.includes(p.status) ? p.status : "processando") as PlanStatus,
+    area: p.area != null ? String(p.area).replace(".", ",") + " m²" : "—",
+    rooms: p.rooms ?? 0,
+    variant: (Number(p.id) % 3) as 0 | 1 | 2,
+  };
+}
+
 export default function PlantasPage() {
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!getToken()) return;
+        const online = await checkApiHealth();
+        if (!online) return;
+        const data = await listPlantas();
+        if (data.length > 0) setPlans(data.map(mapPlantaFromApi));
+      } catch {
+        /* mantém dados locais */
+      }
+    })();
+  }, []);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"todas" | PlanStatus>("todas");
   const [selected, setSelected] = useState<Plan | null>(null);
@@ -216,7 +257,12 @@ export default function PlantasPage() {
   const donePlans = plans.filter((p) => p.status === "concluida");
   const totalRooms = donePlans.reduce((sum, p) => sum + p.rooms, 0);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    try {
+      if (getToken()) await deletePlanta(Number(id));
+    } catch {
+      /* fallback local */
+    }
     setPlans(plans.filter((p) => p.id !== id));
     if (selected?.id === id) setSelected(null);
   };

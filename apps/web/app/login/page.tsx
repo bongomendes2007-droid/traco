@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, ShieldCheck, Github } from "lucide-react";
+import { login, register, checkApiHealth } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,12 +41,23 @@ export default function LoginPage() {
     if (!form.password) return setError("Informe sua senha.");
 
     setLoading(true);
-
-    // Simulação de autenticação (em produção: NextAuth/Clerk)
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
-    setLoading(false);
-    router.push("/dashboard");
+    try {
+      const apiOnline = await checkApiHealth();
+      if (apiOnline) {
+        if (mode === "login") {
+          await login(form.email, form.password);
+        } else {
+          await register(form.name, form.email, form.password, form.role);
+        }
+      } else {
+        // Fallback demo quando o backend Java não está rodando
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha na autenticação.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -248,6 +260,10 @@ export default function LoginPage() {
                     </Link>
                   </div>
                 )}
+
+                <p className="text-[11px] text-grafite-3 font-mono text-center">
+                  Demo: demo@traco.com.br • senha demo123
+                </p>
 
                 <Button
                   type="submit"
