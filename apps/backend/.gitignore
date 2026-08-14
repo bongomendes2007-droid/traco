@@ -2,6 +2,7 @@ target/
 data/
 uploads/
 *.log
+fake.pdf
 .idea/
 *.iml
 .vscode/

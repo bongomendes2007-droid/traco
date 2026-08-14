@@ -14,6 +14,8 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    private static final String ISSUER = "traco-api";
+
     private final SecretKey key;
     private final long expirationMs;
 
@@ -28,6 +30,7 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("uid", userId)
+                .setIssuer(ISSUER)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + expirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -54,6 +57,7 @@ public class JwtService {
     private Claims parse(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
+                .requireIssuer(ISSUER)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

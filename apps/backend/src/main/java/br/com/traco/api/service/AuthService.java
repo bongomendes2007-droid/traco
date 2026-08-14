@@ -18,13 +18,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LoginAttemptService loginAttempts;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       LoginAttemptService loginAttempts) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.loginAttempts = loginAttempts;
     }
 
     @Transactional
@@ -53,11 +56,20 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest req) {
         String email = req.email() == null ? "" : req.email().toLowerCase().trim();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApiException("Credenciais inválidas.", 401));
-        if (!passwordEncoder.matches(req.password() == null ? "" : req.password(), user.getPassword())) {
+
+        loginAttempts.checkNotLocked(email);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        boolean matches = user != null
+                && passwordEncoder.matches(req.password() == null ? "" : req.password(), user.getPassword());
+
+        if (!matches) {
+            loginAttempts.recordFailure(email);
+            // Mensagem genérica de propósito: não revela se o e-mail existe.
             throw new ApiException("Credenciais inválidas.", 401);
         }
+
+        loginAttempts.reset(email);
         return new AuthResponse(jwtService.generateToken(user.getId(), user.getEmail()), UserDto.from(user));
     }
 }

@@ -1,0 +1,42 @@
+# Render Blueprint — deploy do backend TRAÇO (Java 21 + Spring Boot 3 + Postgres)
+# Uso: render.com → New → Blueprint → selecionar o repo → aplicar.
+databases:
+  - name: traco-db
+    plan: free
+    databaseName: traco
+    user: traco
+
+services:
+  - type: web
+    name: traco-api
+    runtime: docker
+    rootDir: apps/backend
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://traco-uuiu-flame.vercel.app
+      - key: DB_HOST
+        fromDatabase:
+          name: traco-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: traco-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: traco-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: traco-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: traco-db
+          property: password

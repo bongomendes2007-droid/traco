@@ -12,7 +12,6 @@ public class HealthController {
     public Map<String, String> root() {
         return Map.of(
                 "status", "online",
-                "service", "TRAÇO AI Engine",
-                "runtime", "Java 21 / Spring Boot 3");
+                "service", "TRAÇO AI Engine");
     }
 }

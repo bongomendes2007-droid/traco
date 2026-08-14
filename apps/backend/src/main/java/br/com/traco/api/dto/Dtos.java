@@ -3,6 +3,9 @@ package br.com.traco.api.dto;
 import br.com.traco.api.model.Planta;
 import br.com.traco.api.model.Project;
 import br.com.traco.api.model.User;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 import java.util.List;
@@ -12,8 +15,16 @@ public final class Dtos {
 
     private Dtos() {}
 
-    public record RegisterRequest(String name, String email, String password, String role) {}
-    public record LoginRequest(String email, String password) {}
+    public record RegisterRequest(
+            @NotBlank @Size(max = 120) String name,
+            @NotBlank @Email @Size(max = 190) String email,
+            @NotBlank @Size(min = 6, max = 72) String password,
+            @Size(max = 30) String role) {}
+
+    public record LoginRequest(
+            @NotBlank @Email @Size(max = 190) String email,
+            @NotBlank @Size(max = 72) String password) {}
+
     public record AuthResponse(String token, UserDto user) {}
 
     public record UserDto(Long id, String name, String email, String role) {
@@ -22,7 +33,10 @@ public final class Dtos {
         }
     }
 
-    public record ProjectRequest(String name, String type, String status) {}
+    public record ProjectRequest(
+            @NotBlank @Size(max = 120) String name,
+            @Size(max = 30) String type,
+            @Size(max = 30) String status) {}
 
     public record ProjectDto(Long id, String name, String type, String status, long plans, Instant createdAt) {
         public static ProjectDto from(Project p, long plans) {

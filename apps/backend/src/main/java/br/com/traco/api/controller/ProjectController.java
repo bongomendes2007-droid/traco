@@ -11,6 +11,7 @@ import br.com.traco.api.repo.AnalysisRepository;
 import br.com.traco.api.repo.PlantaRepository;
 import br.com.traco.api.repo.ProjectRepository;
 import br.com.traco.api.security.CurrentUser;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,7 +58,7 @@ public class ProjectController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProjectDto create(@RequestBody ProjectRequest req) {
+    public ProjectDto create(@Valid @RequestBody ProjectRequest req) {
         User user = currentUser.require();
         if (req.name() == null || req.name().isBlank()) {
             throw new ApiException("Informe o nome do projeto.");
@@ -74,7 +75,7 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    public ProjectDto update(@PathVariable Long id, @RequestBody ProjectRequest req) {
+    public ProjectDto update(@PathVariable Long id, @Valid @RequestBody ProjectRequest req) {
         User user = currentUser.require();
         Project project = projectRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ApiException("Projeto não encontrado.", 404));

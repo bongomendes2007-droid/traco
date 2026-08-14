@@ -80,7 +80,8 @@ Login demo: `demo@traco.com.br` / `demo123`
 - [x] Integração frontend ↔ backend com fallback demo
 - [ ] Worker de visão computacional real (OpenCV/PyTorch) no lugar do AnalysisEngine simulado
 - [ ] Exportação de relatórios PDF/Excel
-- [ ] Deploy do backend em produção (Render/Railway com profile `prod`)
+- [x] Deploy do backend preparado: Dockerfile non-root + `render.yaml` (Blueprint Render com Postgres gerenciado)
+- [ ] Aplicar o Blueprint no Render e apontar `NEXT_PUBLIC_API_URL` no Vercel
 
 ## Licença
 
