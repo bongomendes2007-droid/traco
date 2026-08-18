@@ -26,3 +26,27 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4A433D;
 }
+
+@keyframes traco-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes traco-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes traco-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.traco-float { animation: traco-float 5s ease-in-out infinite; }
+.traco-float-slow { animation: traco-float 6s ease-in-out infinite; }
+.traco-spin { animation: traco-spin 18s linear infinite; }
+.traco-spin-slow { animation: traco-spin 22s linear infinite; }
+.traco-belt {
+  display: flex;
+  width: max-content;
+  animation: traco-marquee 22s linear infinite;
+}
+.traco-belt:hover {
+  animation-play-state: paused;
+}
